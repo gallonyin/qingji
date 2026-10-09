@@ -10,6 +10,10 @@ Qingji is a personal Markdown notebook that brings writing, search, multi-device
 
 These screenshots show the actual application running with a separate demo notebook. The account, note titles, and content are all fictional.
 
+**Sign-in page** · A paper-toned form and an ink-dark background set a quiet tone before you start writing.
+
+![Qingji sign-in page with a paper-toned form, an ink-dark background, and empty credential fields](docs/images/qingji-login.en.jpg)
+
 **Reading view** · Folders, the note list, rendered Markdown, and context tools in one workspace.
 
 ![Qingji reading view with fictional notes, folders, and a tags panel](docs/images/qingji-preview.en.jpg)
