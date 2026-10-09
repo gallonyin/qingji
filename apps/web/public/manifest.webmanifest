@@ -1,0 +1,12 @@
+{
+  "name": "轻记 Qingji",
+  "short_name": "轻记",
+  "description": "安静、离线优先的 Markdown 笔记",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f2eddf",
+  "theme_color": "#f2eddf",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

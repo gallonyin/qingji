@@ -1,0 +1,33 @@
+name: CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: python3 -m unittest discover -s scripts/tests
+      - run: npm audit --registry=https://registry.npmjs.org --audit-level=moderate
+      - run: docker compose build
+      - name: Compose smoke test
+        shell: bash
+        run: |
+          export MYNOTE_PASSWORD=ci-isolated-password
+          docker compose up -d --wait --wait-timeout 90
+          curl --fail --retry 5 --retry-connrefused http://localhost:8080/api/health
+          curl --fail http://localhost:8080/ > /dev/null
+      - name: Stop test containers
+        if: always()
+        run: docker compose down --volumes

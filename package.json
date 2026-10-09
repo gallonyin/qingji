@@ -1,0 +1,27 @@
+{
+  "name": "qingji",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Qingji: lightweight, self-hosted Markdown notes with offline sync and S3 backups.",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,web -c yellow,cyan \"npm run dev -w @mynote/server\" \"npm run dev -w @mynote/web\"",
+    "build": "npm run build -w @mynote/server && npm run build -w @mynote/web",
+    "test": "npm run test -w @mynote/server && npm run test -w @mynote/web",
+    "typecheck": "npm run typecheck -w @mynote/server && npm run typecheck -w @mynote/web",
+    "desktop:dev": "npm run tauri dev -w @mynote/desktop",
+    "desktop:build": "npm run tauri build -w @mynote/desktop"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "license": "MIT",
+  "overrides": {
+    "shell-quote": "^1.11.0"
+  }
+}

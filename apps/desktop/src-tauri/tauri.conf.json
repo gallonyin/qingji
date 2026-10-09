@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Qingji",
+  "version": "0.1.0",
+  "identifier": "app.mynote.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev --prefix ../web",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "npm run build --prefix ../web",
+    "frontendDist": "../../web/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Qingji",
+        "width": 1440,
+        "height": 920,
+        "minWidth": 920,
+        "minHeight": 640,
+        "resizable": true,
+        "fullscreen": false,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' asset: http: https: data: blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' http: https: ipc:; font-src 'self' data:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Productivity",
+    "shortDescription": "Private Markdown notes",
+    "longDescription": "A private, file-first Markdown notebook with offline sync."
+  }
+}
