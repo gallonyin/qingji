@@ -21,7 +21,7 @@ COPY --from=build /app/apps/server/dist apps/server/dist
 EXPOSE 8787
 CMD ["node", "apps/server/dist/index.js"]
 
-FROM nginx:1.27-alpine AS web
+FROM nginx:1.31-alpine AS web
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/apps/web/dist /usr/share/nginx/html
 EXPOSE 80
