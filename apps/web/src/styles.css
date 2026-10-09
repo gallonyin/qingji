@@ -285,3 +285,9 @@ mark { background: rgba(195, 142, 51, .28); color: inherit; border-radius: 1px; 
 .settings-dialog form { flex:1; }
 .settings-body { min-height:0; flex:1; max-height:none; }
 .login-sheet h1 { overflow-wrap:anywhere; }
+
+/* A browser-local language preference, available before and after sign-in. */
+.language-select { font: inherit; font-size: 12px; color: var(--ink, #292724); background: transparent; border: 1px solid rgba(70, 60, 45, .18); border-radius: 4px; padding: 5px 6px; max-width: 110px; }
+.brand .language-select { margin-left: auto; max-width: 92px; }
+.login-sheet > .language-select { float: right; margin-bottom: 16px; }
+.settings-body .language-select { width: 100%; max-width: none; }

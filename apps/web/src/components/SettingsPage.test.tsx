@@ -33,3 +33,15 @@ it('清除密钥会关闭自动备份且显式提交清除意图',async()=>{
  render(<SettingsPage onClose={vi.fn()} onSaved={vi.fn()}/>);await screen.findByLabelText('应用名称');fireEvent.click(screen.getByRole('button',{name:'S3 备份'}));
  fireEvent.click(screen.getByLabelText('保存时清除已保存密钥并关闭备份'));fireEvent.click(screen.getByRole('button',{name:'保存设置'}));await screen.findByText('已保存，设置已生效。');expect(saveSettings).toHaveBeenCalledWith(expect.objectContaining({s3:expect.objectContaining({enabled:false,scheduleEnabled:false})}),true);
 });
+
+it('切换语言保留未保存的外观并且不提交服务器设置',async()=>{
+ render(<SettingsPage onClose={vi.fn()} onSaved={vi.fn()}/>);
+ fireEvent.change(await screen.findByLabelText('应用名称'),{target:{value:'我的自定义名称'}});
+ fireEvent.change(screen.getByRole('combobox',{name:'界面语言'}),{target:{value:'en'}});
+ expect(screen.getByLabelText('App name')).toHaveValue('我的自定义名称');
+ expect(screen.getByRole('button',{name:'Save settings'})).toBeEnabled();
+ fireEvent.change(screen.getByRole('combobox',{name:'Interface language'}),{target:{value:'ja'}});
+ expect(screen.getByLabelText('アプリ名')).toHaveValue('我的自定义名称');
+ expect(screen.getByRole('button',{name:'設定を保存'})).toBeEnabled();
+ expect(saveSettings).not.toHaveBeenCalled();
+});

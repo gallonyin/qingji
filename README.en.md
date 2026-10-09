@@ -1,6 +1,6 @@
 # Qingji · 轻记
 
-[简体中文](README.md) | [English](README.en.md)
+[简体中文](README.md) | [English](README.en.md) | [日本語](README.ja.md)
 
 **A cleaner, smoother Joplin alternative. Deploy with Docker Compose, write in your browser, and keep going offline.**
 
@@ -12,11 +12,11 @@ These screenshots show the actual application running with a separate demo noteb
 
 **Reading view** · Folders, the note list, rendered Markdown, and context tools in one workspace.
 
-![Qingji reading view with fictional notes, folders, and a tags panel](docs/images/qingji-preview.jpg)
+![Qingji reading view with fictional notes, folders, and a tags panel](docs/images/qingji-preview.en.jpg)
 
 **Markdown editor** · Switch between source and preview, with local autosave and incremental sync.
 
-![Qingji Markdown editor showing fictional headings, lists, and tasks](docs/images/qingji-editor.jpg)
+![Qingji Markdown editor showing fictional headings, lists, and tasks](docs/images/qingji-editor.en.jpg)
 
 ## Why Qingji
 
@@ -26,6 +26,10 @@ These screenshots show the actual application running with a separate demo noteb
 - **Keep writing offline.** An initialized browser supports offline note creation, editing, and deletion, followed by incremental sync when it reconnects. A temporary outage does not interrupt text editing.
 - **More economical S3 backups.** The server batches changes from multiple devices, reuses objects by content hash, and uploads only the difference. Unchanged content skips a new snapshot; cached hashes and periodic full reconciliation reduce repeated reads, writes, transfers, and verification work.
 - **Simple deployment, your own data.** One Docker Compose startup command builds the frontend and backend, starts the services, and checks their health. Markdown and original attachments are stored directly on disk, with note history, trash, and full export available.
+
+## Interface languages
+
+Supports Simplified Chinese, English, and Japanese. The first visit follows your browser language, falling back to English for unsupported languages. Switch on the sign-in page, at the top-left of the workspace, or in Settings → Appearance. Your choice is saved in this browser and takes effect without reloading. Note content, titles, tags, and custom app names are not translated.
 
 ## Quick deployment with Docker Compose
 

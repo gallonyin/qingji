@@ -1,3 +1,7 @@
+import {beforeEach} from 'vitest';
+import {setLocale} from '../lib/i18n';
+setLocale('zh-CN');
+beforeEach(() => setLocale('zh-CN'));
 import "fake-indexeddb/auto";
 import "@testing-library/jest-dom/vitest";
 

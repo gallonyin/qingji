@@ -1,3 +1,4 @@
+import {t} from './i18n';
 import { db, putLocalNote, putLocalNotes, deleteLocalNote, clearLocalNotes, type Note, type OutboxItem } from "./db";
 import { createUuid } from "./uuid";
 
@@ -64,7 +65,7 @@ function emit(next: SyncState, detail?: string) {
 export const httpTransport: SyncTransport = {
   async state() {
     const r = await fetch(`${apiBase}/sync/state`,{headers:await authHeaders()});
-    if (!r.ok) throw new Error(`无法读取同步状态（${r.status}）`);
+    if (!r.ok) throw new Error(t("无法读取同步状态（{0}）", r.status));
     return r.json();
   },
   async push(item) {
@@ -86,9 +87,9 @@ export const httpTransport: SyncTransport = {
         }]
       })
     });
-    if (!response.ok) throw new Error(`推送失败（${response.status}）`);
+    if (!response.ok) throw new Error(t("推送失败（{0}）", response.status));
     const result = (await response.json()).results?.[0];
-    if (!result?.note) throw new Error("服务端未返回同步结果");
+    if (!result?.note) throw new Error(t("服务端未返回同步结果"));
     const note = fromServer(result.note);
     return result.conflict
       ? {
@@ -102,7 +103,7 @@ export const httpTransport: SyncTransport = {
     const response = await fetch(`${apiBase}/sync/pull?since=${encodeURIComponent(cursor || "0")}${until === undefined ? "" : `&until=${until}`}`, {
       headers: await authHeaders()
     });
-    if (!response.ok) throw new Error(`拉取失败（${response.status}）`);
+    if (!response.ok) throw new Error(t("拉取失败（{0}）", response.status));
     const data = await response.json();
     return {
       notes: (data.changes ?? []).flatMap((change: { note: ServerNote | null }) => change.note ? [fromServer(change.note)] : []),
@@ -128,10 +129,10 @@ async function runSync(transport: SyncTransport) {
       if (localEpoch !== epoch) {
         await db.transaction("rw",[db.notes,db.catalog,db.outbox,db.conflicts,db.meta,db.recoveryDrafts], async () => {
           for (const item of await db.outbox.toArray()) {
-            await db.recoveryDrafts.put({id:item.operationId,note:item.payload,reason:"服务器数据版本已变化",createdAt:Date.now()});
+            await db.recoveryDrafts.put({id:item.operationId,note:item.payload,reason:t("服务器数据版本已变化"),createdAt:Date.now()});
           }
           for (const conflict of await db.conflicts.toArray()) {
-            await db.recoveryDrafts.put({id:`conflict-${conflict.id}`,note:conflict.local,reason:"恢复前的冲突草稿",createdAt:Date.now()});
+            await db.recoveryDrafts.put({id:`conflict-${conflict.id}`,note:conflict.local,reason:t("恢复前的冲突草稿"),createdAt:Date.now()});
           }
           await clearLocalNotes(); await db.outbox.clear(); await db.conflicts.clear();
           await db.meta.bulkPut([{key:"vaultEpoch",value:epoch},{key:"syncCursor",value:"0"}]);
@@ -176,9 +177,9 @@ async function runSync(transport: SyncTransport) {
     let until: number | undefined;
     while (true) {
     const pulled = await transport.pull(cursor, until);
-    if (pulled.epoch && pulled.epoch !== (await db.meta.get("vaultEpoch"))?.value) throw new Error("服务器数据已恢复，请重新同步");
+    if (pulled.epoch && pulled.epoch !== (await db.meta.get("vaultEpoch"))?.value) throw new Error(t("服务器数据已恢复，请重新同步"));
     until = pulled.until ?? until;
-    if (pulled.hasMore && pulled.cursor === cursor) throw new Error("同步游标未前进");
+    if (pulled.hasMore && pulled.cursor === cursor) throw new Error(t("同步游标未前进"));
     await db.transaction("rw", [db.notes, db.catalog, db.outbox, db.conflicts, db.attachments, db.meta, db.recoveryDrafts], async () => {
       const ids=pulled.notes.map(note=>note.id);
       const [locals,queued]=await Promise.all([db.notes.bulkGet(ids),db.outbox.where("entityId").anyOf(ids).toArray()]);
@@ -193,7 +194,7 @@ async function runSync(transport: SyncTransport) {
       if(accepted.length)await putLocalNotes(accepted);
       for (const id of pulled.deletedIds ?? []) {
         const pending = await db.outbox.where("entityId").equals(id).first();
-        if (pending) await db.recoveryDrafts.put({id:pending.operationId,note:pending.payload,reason:"远端已删除，保留未上传修改",createdAt:Date.now()});
+        if (pending) await db.recoveryDrafts.put({id:pending.operationId,note:pending.payload,reason:t("远端已删除，保留未上传修改"),createdAt:Date.now()});
         await deleteLocalNote(id);
         await db.outbox.where("entityId").equals(id).delete();
         await db.conflicts.where("entityId").equals(id).delete();
@@ -206,7 +207,7 @@ async function runSync(transport: SyncTransport) {
     }
     emit((await db.conflicts.count()) > 0 ? "conflict" : "idle");
   } catch (error) {
-    emit("error", error instanceof Error ? error.message : "同步失败");
+    emit("error", error instanceof Error ? error.message : t("同步失败"));
   }
 }
 

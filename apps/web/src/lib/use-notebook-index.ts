@@ -1,3 +1,4 @@
+import {t} from './i18n';
 import {useEffect,useRef,useState} from 'react';
 import type {NoteSummary} from './db';
 import type {IndexRequest,IndexResponse} from './notebook-index';
@@ -9,10 +10,10 @@ export function useNotebookIndex(notes:NoteSummary[],query:string,title:string,e
   if(!enabled)return;
   let instance:Worker;
   try{instance=new Worker(new URL('./notebook-index.worker.ts',import.meta.url),{type:'module'});}
-  catch{setResult({...empty,error:'本地全文检索暂不可用'});return;}
+  catch{setResult({...empty,error:t("本地全文检索暂不可用")});return;}
   worker.current=instance;known.current.clear();initialized.current=false;
   instance.onmessage=(event:MessageEvent<IndexResponse>)=>{if(event.data.sequence===sequence.current)setResult(event.data);};
-  instance.onerror=()=>setResult(previous=>({...previous,error:'本地全文检索暂不可用'}));
+  instance.onerror=()=>setResult(previous=>({...previous,error:t("本地全文检索暂不可用")}));
   return ()=>{instance.terminate();worker.current=null;};
  },[enabled]);
  useEffect(()=>{

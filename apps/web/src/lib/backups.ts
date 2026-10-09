@@ -1,3 +1,4 @@
+import {t} from './i18n';
 const apiBase = import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "/api";
 
 export type BackupSnapshot = {
@@ -48,11 +49,11 @@ async function result<T>(response: Response): Promise<T> {
     // Proxies and upstream outages can return an HTML/empty 5xx body.
   }
   const messages: Record<string, string> = {
-    BACKUP_ABNORMAL_DROP: "数据数量或容量异常减少，已拦截备份；云端历史快照未被删除。",
-    BACKUP_PROTECTED: "恢复保护中，已暂停写入和备份。请完成恢复后再试。",
-    RESTORE_RECOVERY_REQUIRED: "恢复切换曾中断，已保留现场，需要管理员检查回滚目录。"
+    BACKUP_ABNORMAL_DROP: t("数据数量或容量异常减少，已拦截备份；云端历史快照未被删除。"),
+    BACKUP_PROTECTED: t("恢复保护中，已暂停写入和备份。请完成恢复后再试。"),
+    RESTORE_RECOVERY_REQUIRED: t("恢复切换曾中断，已保留现场，需要管理员检查回滚目录。")
   };
-  if (!response.ok) throw new Error(messages[data.error ?? ""] || data.error || `备份服务请求失败（${response.status}）`);
+  if (!response.ok) throw new Error(messages[data.error ?? ""] || data.error || t("备份服务请求失败（{0}）", response.status));
   return data as T;
 }
 

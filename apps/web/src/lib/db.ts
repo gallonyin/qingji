@@ -1,3 +1,4 @@
+import {t} from './i18n';
 import Dexie, { type EntityTable } from "dexie";
 import { createUuid } from "./uuid";
 
@@ -105,25 +106,15 @@ export class MyNoteDB extends Dexie {
 
 export const db = new MyNoteDB();
 
-const starter = `# 从这里开始
-
-这里是一方安静的书写空间。所有改动会先保存到本机，再等待网络同步。
-
-## 可以试试
-
-- 用 \`[[晨间摘录]]\` 链接另一篇笔记
-- 添加标签、收藏，或从右侧查看反向链接
-- 切换到预览，检查排版
-
-> 好的笔记，不必一次写完。`;
+const starter = () => t("# 从这里开始\n\n这里是一方安静的书写空间。所有改动会先保存到本机，再等待网络同步。\n\n## 可以试试\n\n- 用 `[[晨间摘录]]` 链接另一篇笔记\n- 添加标签、收藏，或从右侧查看反向链接\n- 切换到预览，检查排版\n\n> 好的笔记，不必一次写完。");
 
 export async function seedDatabase() {
   await db.transaction("rw", db.notes, db.catalog, async () => {
     if (await db.notes.count()) return;
     const now = Date.now();
     const notes: Note[] = [
-      { id: createUuid(), title: "从这里开始", content: starter, parentId: null, tags: ["指南"], favorite: true, createdAt: now, updatedAt: now, deletedAt: null, version: 1 },
-      { id: createUuid(), title: "晨间摘录", content: "# 晨间摘录\n\n清晨适合记录还没有被解释的想法。", parentId: null, tags: ["随笔"], favorite: false, createdAt: now - 3600000, updatedAt: now - 3600000, deletedAt: null, version: 1 }
+      { id: createUuid(), title: t("从这里开始"), content: starter(), parentId: null, tags: [t("指南")], favorite: true, createdAt: now, updatedAt: now, deletedAt: null, version: 1 },
+      { id: createUuid(), title: t("晨间摘录"), content: t("# 晨间摘录\n\n清晨适合记录还没有被解释的想法。"), parentId: null, tags: [t("随笔")], favorite: false, createdAt: now - 3600000, updatedAt: now - 3600000, deletedAt: null, version: 1 }
     ];
     await putLocalNotes(notes);
   });
@@ -149,7 +140,7 @@ async function enqueue(note: Note, operation: OutboxItem["operation"] = "upsert"
 
 export async function createNote(parentId: string | null = null) {
   const now = Date.now();
-  const note: Note = { id: createUuid(), title: "未命名", content: "", parentId, tags: [], favorite: false, createdAt: now, updatedAt: now, deletedAt: null, version: 1 };
+  const note: Note = { id: createUuid(), title: t("未命名"), content: "", parentId, tags: [], favorite: false, createdAt: now, updatedAt: now, deletedAt: null, version: 1 };
   await db.transaction("rw", db.notes, db.catalog, db.outbox, async () => {
     await putLocalNote(note);
     await enqueue(note);
@@ -160,7 +151,7 @@ export async function createNote(parentId: string | null = null) {
 export async function updateNote(id: string, patch: Partial<Pick<Note, "title" | "content" | "parentId" | "tags" | "favorite">>) {
   return db.transaction("rw", db.notes, db.catalog, db.outbox, async () => {
     const current = await db.notes.get(id);
-    if (!current) throw new Error("笔记不存在");
+    if (!current) throw new Error(t("笔记不存在"));
     const note = { ...current, ...patch, updatedAt: Date.now(), version: current.version + 1 };
     await putLocalNote(note);
     await enqueue(note);
@@ -190,16 +181,16 @@ export async function restoreNote(id: string) {
 
 export async function purgeNote(id: string) {
   const current = await db.notes.get(id);
-  if (!current?.deletedAt) throw new Error("只有回收站中的笔记可以永久删除");
-  if (!navigator.onLine) throw new Error("永久删除需要连接服务器");
+  if (!current?.deletedAt) throw new Error(t("只有回收站中的笔记可以永久删除"));
+  if (!navigator.onLine) throw new Error(t("永久删除需要连接服务器"));
   const token = localStorage.getItem("mynote:token");
-  if (!token) throw new Error("登录已失效");
+  if (!token) throw new Error(t("登录已失效"));
 
   const response = await fetch(`${apiBase}/notes/${id}/permanent?revision=${current.version}`, {
     method: "DELETE",
     headers: { authorization: `Bearer ${token}`, "x-vault-epoch": (await db.meta.get("vaultEpoch"))?.value ?? "" }
   });
-  if (!response.ok) throw new Error(`永久删除失败（${response.status}）`);
+  if (!response.ok) throw new Error(t("永久删除失败（{0}）", response.status));
 
   await db.transaction(
     "rw",
@@ -217,7 +208,7 @@ export async function purgeNote(id: string) {
 }
 
 export async function addAttachment(noteId: string, file: File) {
-  if(!navigator.onLine)throw new Error("附件上传需要联网；离线时可以继续编辑笔记正文。");
+  if(!navigator.onLine)throw new Error(t("附件上传需要联网；离线时可以继续编辑笔记正文。"));
   const token = localStorage.getItem("mynote:token");
   let remotePath: string | undefined;
   if (token && navigator.onLine) {
@@ -228,7 +219,7 @@ export async function addAttachment(noteId: string, file: File) {
       headers: { authorization: `Bearer ${token}`, "x-vault-epoch": (await db.meta.get("vaultEpoch"))?.value ?? "" },
       body
     });
-    if (!response.ok) throw new Error(`附件上传失败（${response.status}）`);
+    if (!response.ok) throw new Error(t("附件上传失败（{0}）", response.status));
     remotePath = (await response.json()).attachment?.path;
   }
   const attachment: Attachment = {
@@ -248,7 +239,7 @@ export async function recoverDraft(id: string) {
   return db.transaction("rw", db.notes, db.catalog, db.outbox, db.recoveryDrafts, db.attachments, async () => {
     const draft = await db.recoveryDrafts.get(id);
     if (!draft) return;
-    const note: Note = {...draft.note,id:createUuid(),title:draft.note.title + "（保留的本地修改）",deletedAt:null,version:1,serverVersion:0,updatedAt:Date.now()};
+    const note: Note = {...draft.note,id:createUuid(),title:draft.note.title + t("（保留的本地修改）"),deletedAt:null,version:1,serverVersion:0,updatedAt:Date.now()};
     await putLocalNote(note);
     for (const attachment of await db.attachments.where("noteId").equals(draft.note.id).toArray()) {
       await db.attachments.put({...attachment, id:createUuid(), noteId:note.id});
