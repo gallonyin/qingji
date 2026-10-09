@@ -1,3 +1,5 @@
+import {NoteFind} from './components/NoteFind';
+import type {NoteFindEditor} from './lib/note-find';
 import {LanguageSelect} from './components/LanguageSelect';
 import {t, localizeMessage, useLocale, getLocale, displayBrandName} from './lib/i18n';
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
@@ -296,6 +298,7 @@ function App() {
   const [title, setTitle] = useState("");
   const saveJobs = useRef(new Map<string, { timer: number; patch: { title?: string; content?: string } }>());
   const fileRef = useRef<HTMLInputElement>(null);
+  const editorSearchRef = useRef<NoteFindEditor>(null);
   const openingId=useRef<string|undefined>(undefined);
 
   useEffect(()=>{
@@ -607,7 +610,7 @@ function App() {
             <div className="mode-switch"><button className={!preview ? "active" : ""} onClick={() => setPreview(false)}>{t("源码")}</button><button className={preview ? "active" : ""} onClick={() => setPreview(true)}>{t("预览")}</button></div>
             <button className="icon-btn" onClick={() => setRightOpen(!rightOpen)} title={t("上下文面板")}>{rightOpen ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}</button>
           </header>
-          <div key={`${selected.id}:${preview?'preview':'source'}`} className={`note-content ${preview?'preview-content':'source-content'}`} tabIndex={preview?0:undefined} aria-label={preview?t("正文阅读区"):undefined}>
+          <NoteFind key={selected.id} content={activeDraft} preview={preview} editorRef={editorSearchRef}>
           <div className="title-line">
             <NoteTitle value={activeTitle} onChange={(value) => { setTitle(value); scheduleSave({ title: value }); }} />
             <button className={`icon-btn ${selected.favorite ? "accent" : ""}`} onClick={() => void updateNote(selected.id, { favorite: !selected.favorite })} title={t("收藏")}><Star size={18} fill={selected.favorite ? "currentColor" : "none"} /></button>
@@ -615,9 +618,9 @@ function App() {
           <div className="editor-area">
             {preview
               ? <MarkdownPreview content={activeDraft} onNavigate={openWikiLink}/>
-              : <MarkdownEditor key={selected.id} value={activeDraft} onChange={(content) => { setDraft(content); scheduleSave({ content }); }} />}
+              : <MarkdownEditor key={selected.id} searchRef={editorSearchRef} value={activeDraft} onChange={(content) => { setDraft(content); scheduleSave({ content }); }} />}
           </div>
-          </div>
+          </NoteFind>
           <footer className="status-bar"><span>{t("{0} 字", activeDraft.replace(/\s/g, "").length)}</span><span>Markdown</span><span>{t("本地自动保存")}</span></footer>
         </> : <div className="blank-editor"><button className="icon-btn mobile-only" aria-label={t("打开菜单")} onClick={()=>setMobileNav(true)}><Menu size={18}/></button><div className="watermark">{branding.logoText}</div><p>{selectedId?t("正在读取正文…"):t("选择一篇笔记，或开始新的书写。")}</p><button onClick={addNote}>{t("新建笔记")}</button></div>}
       </section>

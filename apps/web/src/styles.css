@@ -291,3 +291,17 @@ mark { background: rgba(195, 142, 51, .28); color: inherit; border-radius: 1px; 
 .brand .language-select { margin-left: auto; max-width: 92px; }
 .login-sheet > .language-select { float: right; margin-bottom: 16px; }
 .settings-body .language-select { width: 100%; max-width: none; }
+
+.note-content { position: relative; }
+.note-find-bar { position: sticky; top: 0; z-index: 4; flex: 0 0 auto; display: flex; align-items: center; gap: 7px; min-height: 44px; padding: 7px 12px; background: var(--paper, #f5f1e7); border-bottom: 1px solid var(--line); box-shadow: 0 2px 5px rgba(41,39,36,.04); font-size: 12px; }
+.note-find-bar > input { width: 100%; min-width: 50px; flex: 1; padding: 5px 8px; border: 1px solid var(--line); border-radius: 3px; background: rgba(255,255,255,.6); color: var(--ink); font: inherit; }
+.note-find-bar > input:focus { outline: 1px solid var(--accent); outline-offset: 1px; }
+.note-find-count { flex: 0 0 auto; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.note-find-bar .icon-btn { flex: 0 0 auto; }
+.note-find-case[aria-pressed="true"] { background: rgba(163,58,43,.12); color: var(--accent); }
+.note-find-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.note-find-hit { position: absolute; background: rgba(234,210,147,.5); border-radius: 2px; }
+.note-find-hit.active { background: rgba(233,161,109,.5); outline: 1px solid rgba(163,58,43,.4); }
+.cm-note-find { background: #ead293; }
+.cm-note-find.active { background: #e9a16d; }
+@media (max-width: 600px) { .note-find-bar { gap: 3px; padding: 6px; } .note-find-count { font-size: 10px; } }

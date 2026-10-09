@@ -27,6 +27,10 @@ These screenshots show the actual application running with a separate demo noteb
 - **More economical S3 backups.** The server batches changes from multiple devices, reuses objects by content hash, and uploads only the difference. Unchanged content skips a new snapshot; cached hashes and periodic full reconciliation reduce repeated reads, writes, transfers, and verification work.
 - **Simple deployment, your own data.** One Docker Compose startup command builds the frontend and backend, starts the services, and checks their health. Markdown and original attachments are stored directly on disk, with note history, trash, and full export available.
 
+## Find within a note
+
+Click the article or enter the editor, then press **Ctrl+F** (**⌘F** also works on Mac) to search the current note. Source mode searches raw Markdown; preview mode searches rendered body text. Matches are counted and highlighted, with case sensitivity, Enter / Shift+Enter navigation, and Esc to close. Switching modes preserves the query. When focus is outside the article, such as in the sidebar, the browser’s default find remains available.
+
 ## Interface languages
 
 Supports Simplified Chinese, English, and Japanese. The first visit follows your browser language, falling back to English for unsupported languages. Switch on the sign-in page, at the top-left of the workspace, or in Settings → Appearance. Your choice is saved in this browser and takes effect without reloading. Note content, titles, tags, and custom app names are not translated.

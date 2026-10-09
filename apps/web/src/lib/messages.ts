@@ -1,5 +1,16 @@
 // Chinese source messages map to English and Japanese. Keep placeholders identical.
 export const messages: Record<string, readonly [string, string]> = {
+  "页内搜索": ["Find in note", "ノート内検索"],
+  "搜索当前笔记": ["Search current note", "現在のノートを検索"],
+  "在当前笔记中搜索…": ["Find in this note…", "このノート内を検索…"],
+  "仅搜索正文": ["Note content only", "本文のみ検索"],
+  "没有匹配": ["No matches", "一致なし"],
+  "{0} / {1}": ["{0} / {1}", "{0} / {1}"],
+  "区分大小写": ["Match case", "大文字・小文字を区別"],
+  "上一处匹配": ["Previous match", "前の一致"],
+  "下一处匹配": ["Next match", "次の一致"],
+  "关闭页内搜索": ["Close note search", "ノート内検索を閉じる"],
+  "最多显示 {0} 处匹配，请缩小搜索范围。": ["Showing up to {0} matches. Narrow your search.", "最大{0}件の一致を表示します。検索を絞り込んでください。"],
   "Markdown 编辑器": ["Markdown editor", "Markdownエディター"],
   "界面语言": ["Interface language", "表示言語"],
   "只影响当前浏览器，不会翻译笔记内容。": ["Applies to this browser only. Note content is not translated.", "このブラウザーにのみ適用します。ノートの内容は翻訳しません。"],

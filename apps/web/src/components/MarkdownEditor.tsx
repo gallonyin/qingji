@@ -1,9 +1,10 @@
+import {type NoteFindEditor, type TextMatch} from '../lib/note-find';
 import {useLocale, t} from '../lib/i18n';
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useImperativeHandle, useRef, type RefObject } from "react";
 import { basicSetup } from "codemirror";
 import { markdown } from "@codemirror/lang-markdown";
-import { Compartment, EditorState } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
+import { Compartment, EditorState, StateEffect, StateField } from "@codemirror/state";
+import { Decoration, EditorView, keymap, type DecorationSet } from "@codemirror/view";
 
 const phraseTranslations: Record<string, readonly [string, string]> = {
   Find: ['查找', '検索'], Replace: ['替换', '置換'], next: ['下一个', '次へ'], previous: ['上一个', '前へ'], all: ['全部', 'すべて'],
@@ -18,9 +19,23 @@ function editorPhrases(locale: string): Record<string, string> {
   return locale === 'en' ? {} : Object.fromEntries(Object.entries(phraseTranslations).map(([key, values]) => [key, values[locale === 'ja' ? 1 : 0]]));
 }
 
+const findHighlights = StateEffect.define<{matches: TextMatch[]; active: number}>();
+const findField = StateField.define<DecorationSet>({
+  create: () => Decoration.none,
+  update(value, transaction) {
+    value = value.map(transaction.changes);
+    for (const effect of transaction.effects) if (effect.is(findHighlights)) {
+      value = Decoration.set(effect.value.matches.map((match, index) => Decoration.mark({class: index === effect.value.active ? 'cm-note-find active' : 'cm-note-find'}).range(match.from, match.to)), true);
+    }
+    return value;
+  },
+  provide: field => EditorView.decorations.from(field)
+});
+
 type Props = {
   value: string;
   onChange: (value: string) => void;
+  searchRef?: RefObject<NoteFindEditor | null>;
 };
 
 const paperTheme = EditorView.theme({
@@ -34,7 +49,7 @@ const paperTheme = EditorView.theme({
   "&.cm-focused": { outline: "none" }
 });
 
-export function MarkdownEditor({ value, onChange }: Props) {
+export function MarkdownEditor({ value, onChange, searchRef }: Props) {
   const locale = useLocale();
   const language = useRef(new Compartment());
   const host = useRef<HTMLDivElement>(null);
@@ -43,7 +58,7 @@ export function MarkdownEditor({ value, onChange }: Props) {
   const applyingExternalValue = useRef(false);
   changeRef.current = onChange;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!host.current) return;
     view.current = new EditorView({
       parent: host.current,
@@ -51,6 +66,7 @@ export function MarkdownEditor({ value, onChange }: Props) {
         doc: value,
         extensions: [
           basicSetup,
+          findField,
           language.current.of([EditorState.phrases.of(editorPhrases(locale)), EditorView.contentAttributes.of({"aria-label": t("Markdown 编辑器")})]),
           markdown(),
           EditorView.lineWrapping,
@@ -71,7 +87,7 @@ export function MarkdownEditor({ value, onChange }: Props) {
     view.current?.dispatch({effects: language.current.reconfigure([EditorState.phrases.of(editorPhrases(locale)), EditorView.contentAttributes.of({"aria-label": t("Markdown 编辑器")})])});
   }, [locale]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const current = view.current;
     if (!current || current.state.doc.toString() === value) return;
     applyingExternalValue.current = true;
@@ -81,6 +97,16 @@ export function MarkdownEditor({ value, onChange }: Props) {
       applyingExternalValue.current = false;
     }
   }, [value]);
+
+  useImperativeHandle(searchRef, () => ({
+    selectedText: () => {const editor = view.current; return editor ? editor.state.sliceDoc(editor.state.selection.main.from, editor.state.selection.main.to) : '';},
+    clear: () => {view.current?.dispatch({effects: findHighlights.of({matches: [], active: -1})});},
+    highlight: (matches, active) => {
+      const editor = view.current; if (!editor) return;
+      const match = matches[active];
+      editor.dispatch({effects: [findHighlights.of({matches, active}), ...(match ? [EditorView.scrollIntoView(match.from, {y: 'center'})] : [])], ...(match ? {selection: {anchor: match.from, head: match.to}} : {})});
+    }
+  }), []);
 
   return <div className="cm-host" ref={host} />;
 }
