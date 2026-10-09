@@ -27,6 +27,12 @@ These screenshots show the actual application running with a separate demo noteb
 - **More economical S3 backups.** The server batches changes from multiple devices, reuses objects by content hash, and uploads only the difference. Unchanged content skips a new snapshot; cached hashes and periodic full reconciliation reduce repeated reads, writes, transfers, and verification work.
 - **Simple deployment, your own data.** One Docker Compose startup command builds the frontend and backend, starts the services, and checks their health. Markdown and original attachments are stored directly on disk, with note history, trash, and full export available.
 
+## Immersive reading
+
+Click “Enter immersive reading” in the article toolbar to hide the folders, note list, and context panel and read in a centered layout. Choose a 16–26px text size, comfortable or wide layout, and paper, light, or dark theme. A progress bar tracks reading; preferences are saved in this browser. Find within a note remains available. Press Esc or click exit to restore your previous preview/source mode and panel layout. If find is open, the first Esc closes it.
+
+![Qingji immersive reading with fictional content and reading settings](docs/images/qingji-reading.en.jpg)
+
 ## Find within a note
 
 Click the article or enter the editor, then press **Ctrl+F** (**⌘F** also works on Mac) to search the current note. Source mode searches raw Markdown; preview mode searches rendered body text. Matches are counted and highlighted, with case sensitivity, Enter / Shift+Enter navigation, and Esc to close. Switching modes preserves the query. When focus is outside the article, such as in the sidebar, the browser’s default find remains available.

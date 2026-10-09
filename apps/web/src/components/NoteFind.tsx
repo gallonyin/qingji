@@ -125,7 +125,7 @@ export function NoteFind({content, preview, editorRef, children}: Props) {
       <button className="icon-btn" disabled={!count} aria-label={t('下一处匹配')} title={t('下一处匹配')} onClick={() => move(1)}><ArrowDown size={16}/></button>
       <button className="icon-btn" aria-label={t('关闭页内搜索')} title={t('关闭页内搜索')} onClick={close}><X size={16}/></button>
     </div>}
-    {nativeHighlights && <style>{`::highlight(${allName}) { background: #ead293; color: inherit; } ::highlight(${activeName}) { background: #e9a16d; color: #292724; }`}</style>}
+    {nativeHighlights && <style>{`::highlight(${allName}) { background: #ead293; color: #292724; } ::highlight(${activeName}) { background: #e9a16d; color: #292724; }`}</style>}
     {children}
     {!nativeHighlights && open && <div className="note-find-overlay" aria-hidden="true">{boxes.map((box, index) => <span key={index} className={box.active ? 'note-find-hit active' : 'note-find-hit'} style={{left: box.left, top: box.top, width: box.width, height: box.height}}/>)}</div>}
   </div>;

@@ -1,3 +1,5 @@
+import {ReadingToolbar} from './components/ReadingToolbar';
+import {useReadingMode, useReadingPreferences} from './lib/use-reading-mode';
 import {NoteFind} from './components/NoteFind';
 import type {NoteFindEditor} from './lib/note-find';
 import {LanguageSelect} from './components/LanguageSelect';
@@ -8,7 +10,7 @@ import { MarkdownPreview } from "./components/MarkdownPreview";
 import {
   ArchiveRestore, ChevronsUpDown, Cloud, FilePlus2, FolderInput, Link2, LogOut,
   Menu, Paperclip, PanelRightClose, PanelRightOpen, Search, Star, Tags, Trash2,
-  RotateCcw, UserRound, WifiOff, X, Zap, Settings, Github
+  RotateCcw, UserRound, WifiOff, X, Zap, Settings, Github, Maximize2
 } from "lucide-react";
 import { SettingsPage, BrandMark } from "./components/SettingsPage";
 import {cachedBranding,cacheBranding,getBranding,GITHUB_URL,type Branding} from "./lib/settings";
@@ -279,6 +281,9 @@ function App() {
   const [expandedFolders, setExpandedFolders] = useState(initialNavigation.expanded);
   const [query, setQuery] = useState("");
   const [preview, setPreview] = useState(true);
+  const reading = useReadingMode(preview, setPreview);
+  const {preferences: readingPreferences, update: updateReadingPreferences} = useReadingPreferences();
+  const workspaceRef = useRef<HTMLElement>(null);
   const [mobileNav, setMobileNav] = useState(false);
   const [rightOpen, setRightOpen] = useState(true);
   const [leftWidth, setLeftWidth] = useState(260);
@@ -558,7 +563,7 @@ function App() {
   }} />;
 
   return (
-    <main data-index-reads={localIndex.reads} data-index-pending={localIndex.pending} data-catalog-count={notes.length} className={`desk ${mobileNav ? "mobile-nav" : ""}`} style={{ "--left": `${leftWidth}px`, "--right": `${rightOpen ? rightWidth : 0}px` } as React.CSSProperties}>
+    <main data-index-reads={localIndex.reads} data-index-pending={localIndex.pending} data-catalog-count={notes.length} className={`desk ${mobileNav ? "mobile-nav" : ""} ${reading.active && selected ? "immersive-reading" : ""}`} data-reading-theme={readingPreferences.theme} style={{ "--reading-size": `${readingPreferences.fontSize}px`, "--reading-width": readingPreferences.width === "wide" ? "960px" : "720px", "--left": `${leftWidth}px`, "--right": `${rightOpen ? rightWidth : 0}px` } as React.CSSProperties}>
       <aside className="left-panel">
         <header className="brand">
           <BrandMark branding={branding}/><strong data-tooltip={displayBrandName(branding)}>{displayBrandName(branding)}</strong>
@@ -602,17 +607,19 @@ function App() {
 
       <div className="splitter left-splitter" onPointerDown={resize("left")} />
 
-      <section className="workspace">
+      <section className="workspace" ref={workspaceRef}>
         {selected ? <>
+          {reading.active && <ReadingToolbar key={`reading:${selected.id}`} host={workspaceRef} content={activeDraft} preferences={readingPreferences} update={updateReadingPreferences} onExit={reading.exit}/>}
           <header className="editor-bar">
             <button className="icon-btn mobile-only mobile-menu" aria-label={t("打开菜单")} onClick={() => setMobileNav(true)}><Menu size={18} /></button>
             <div className={`sync-state ${displaySyncState}`} title={localizeMessage(syncDetail)}><i />{displaySyncLabel}</div>
             <div className="mode-switch"><button className={!preview ? "active" : ""} onClick={() => setPreview(false)}>{t("源码")}</button><button className={preview ? "active" : ""} onClick={() => setPreview(true)}>{t("预览")}</button></div>
+            <button ref={reading.trigger} className="icon-btn" aria-label={t("进入沉浸模式")} title={t("进入沉浸模式")} onClick={reading.enter}><Maximize2 size={18}/></button>
             <button className="icon-btn" onClick={() => setRightOpen(!rightOpen)} title={t("上下文面板")}>{rightOpen ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}</button>
           </header>
           <NoteFind key={selected.id} content={activeDraft} preview={preview} editorRef={editorSearchRef}>
           <div className="title-line">
-            <NoteTitle value={activeTitle} onChange={(value) => { setTitle(value); scheduleSave({ title: value }); }} />
+            {reading.active ? <h1 className="reading-title">{activeTitle || t("未命名")}</h1> : <NoteTitle value={activeTitle} onChange={(value) => { setTitle(value); scheduleSave({ title: value }); }} />}
             <button className={`icon-btn ${selected.favorite ? "accent" : ""}`} onClick={() => void updateNote(selected.id, { favorite: !selected.favorite })} title={t("收藏")}><Star size={18} fill={selected.favorite ? "currentColor" : "none"} /></button>
           </div>
           <div className="editor-area">
