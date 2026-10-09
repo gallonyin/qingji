@@ -8,6 +8,8 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      MYNOTE_PASSWORD: ci-isolated-password
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -24,7 +26,6 @@ jobs:
       - name: Compose smoke test
         shell: bash
         run: |
-          export MYNOTE_PASSWORD=ci-isolated-password
           docker compose up -d --wait --wait-timeout 90
           curl --fail --retry 5 --retry-connrefused http://localhost:8080/api/health
           curl --fail http://localhost:8080/ > /dev/null
