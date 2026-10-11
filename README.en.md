@@ -31,6 +31,12 @@ These screenshots show the actual application running with a separate demo noteb
 - **More economical S3 backups.** The server batches changes from multiple devices, reuses objects by content hash, and uploads only the difference. Unchanged content skips a new snapshot; cached hashes and periodic full reconciliation reduce repeated reads, writes, transfers, and verification work.
 - **Simple deployment, your own data.** One Docker Compose startup command builds the frontend and backend, starts the services, and checks their health. Markdown and original attachments are stored directly on disk, with note history, trash, and full export available.
 
+## Managing folders and notes
+
+Use “New note / New folder” in the sidebar. Empty folders persist and sync, and folders with one note remain visible. Every folder and note row has a “⋯” menu, also available by right click, for moving and deleting. Folder menus also offer rename, new subfolder, and new note here. The article toolbar provides move and Trash actions without opening the context panel.
+
+Moving a folder includes its subfolders and notes. Deletion shows the affected note count and moves notes to recoverable Trash. Folder management requires a connection, syncs to other devices, and includes empty folders in S3 snapshots. Cached notes can still be edited, moved, and sent to Trash offline.
+
 ## Immersive reading
 
 Click “Enter immersive reading” in the article toolbar to hide the folders, note list, and context panel and read in a centered layout. Choose a 16–26px text size, comfortable or wide layout, and paper, light, or dark theme. A progress bar tracks reading; preferences are saved in this browser. Find within a note remains available. Press Esc or click exit to restore your previous preview/source mode and panel layout. If find is open, the first Esc closes it.

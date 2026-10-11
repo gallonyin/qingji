@@ -1,3 +1,5 @@
+import {ManagementDialog,type ManagementRequest} from "./components/ManagementDialog";
+import {type ItemAction} from "./components/ItemActions";
 import {ReadingToolbar} from './components/ReadingToolbar';
 import {useReadingMode, useReadingPreferences} from './lib/use-reading-mode';
 import {NoteFind} from './components/NoteFind';
@@ -8,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type
 import { useLiveQuery } from "dexie-react-hooks";
 import { MarkdownPreview } from "./components/MarkdownPreview";
 import {
-  ArchiveRestore, ChevronsUpDown, Cloud, FilePlus2, FolderInput, Link2, LogOut,
+  ArchiveRestore, ChevronsUpDown, Cloud, FilePlus2, FolderPlus, FolderInput, Link2, LogOut,
   Menu, Paperclip, PanelRightClose, PanelRightOpen, Search, Star, Tags, Trash2,
   RotateCcw, UserRound, WifiOff, X, Zap, Settings, Github, Maximize2
 } from "lucide-react";
@@ -19,7 +21,7 @@ import { NoteTitle } from "./components/NoteTitle";
 import { HoverTooltip } from "./components/HoverTooltip";
 import { FolderTree } from "./components/FolderTree";
 import { readNavigation, saveNavigation } from "./lib/navigation";
-import { isInFolder } from "./lib/folders";
+import { buildFolderTree,isInFolder } from "./lib/folders";
 import { NoteList } from "./components/NoteList";
 import { MarkdownEditor } from "./components/MarkdownEditor";
 import {
@@ -27,7 +29,7 @@ import {
   type BackupSnapshot, type BackupStatus
 } from "./lib/backups";
 import {
-  addAttachment, createNote, db, purgeNote, recoverDraft, restoreNote, trashNote, updateNote, type Note, type NoteSummary, putLocalNote
+  addAttachment, createNote, db, purgeNote, recoverDraft, restoreNote, trashNote, updateNote, type Note, type NoteSummary, putLocalNote, putLocalNotes
 } from "./lib/db";
 import { startVisiblePolling } from "./lib/visible-polling";
 import { useNotebookIndex } from "./lib/use-notebook-index";
@@ -296,6 +298,7 @@ function App() {
     initialValue: string;
     onConfirm: (value: string) => void;
   } | null>(null);
+  const [management,setManagement]=useState<ManagementRequest|null>(null);
   const [historyNote, setHistoryNote] = useState<Note | null>(null);
   const [dirty, setDirty] = useState(false);
   const [draft, setDraft] = useState("");
@@ -365,6 +368,9 @@ function App() {
 
   const catalog = useLiveQuery(() => db.catalog.orderBy("updatedAt").reverse().toArray());
   const notes=catalog??EMPTY_NOTES;
+  const folderMeta=useLiveQuery(()=>db.meta.get("folderPaths"));
+  const folderPaths=useMemo<string[]>(()=>folderMeta?JSON.parse(folderMeta.value):[],[folderMeta]);
+  const availableFolders=useMemo(()=>{const result:string[]=[];const visit=(nodes:ReturnType<typeof buildFolderTree>["roots"])=>nodes.forEach(n=>{result.push(n.path);visit(n.children);});visit(buildFolderTree(notes,folderPaths).roots);return result;},[notes,folderPaths]);
   const loadedNote=useLiveQuery(()=>selectedId?db.notes.get(selectedId):undefined,[selectedId]);
   const recoveryDrafts = useLiveQuery(() => db.recoveryDrafts.toArray(), [], []);
   const conflicts = useLiveQuery(() => db.conflicts.toArray(), [], []);
@@ -393,7 +399,7 @@ function App() {
   useEffect(() => {
     if(catalog===undefined || (!notes.length && syncState!=="idle"))return;
     if(selectedId&&openingId.current===selectedId&&!notesById.has(selectedId))return;
-    const folderExists=selectedFolder===null||notes.some(note=>!note.deletedAt&&isInFolder(note.parentId,selectedFolder));
+    const folderExists=selectedFolder===null||availableFolders.includes(selectedFolder)||notes.some(note=>!note.deletedAt&&isInFolder(note.parentId,selectedFolder));
     if(!folderExists){setSelectedFolder(null);return;}
     const eligible=(note:NoteSummary)=>{
       if(view==="trash"?!note.deletedAt:!!note.deletedAt)return false;
@@ -404,7 +410,7 @@ function App() {
     const current=notesById.get(selectedId);
     if(current&&eligible(current)){openingId.current=undefined;return;}
     setSelectedId(notes.find(eligible)?.id??"");
-  }, [catalog,notes,notesById,selectedId,selectedFolder,view,syncState]);
+  }, [catalog,notes,notesById,selectedId,selectedFolder,view,syncState,availableFolders]);
 
   useEffect(()=>{
     if(user&&catalog!==undefined&&notes.length)saveNavigation(user,{view,folder:selectedFolder,noteId:selectedId,expanded:expandedFolders});
@@ -493,11 +499,62 @@ function App() {
     })().catch(error=>{setSyncState("error");setSyncDetail(error.message);});
   },[notesById,selectedFolder,view]);
 
-  const addNote = async () => {
-    const note = await createNote(selectedFolder);
+  const addNote = async (folder: string | null = selectedFolder) => {
+    const note = await createNote(folder);
+    setSelectedFolder(folder);setQuery("");
     openingId.current=note.id;
     setView("all");
     setSelectedId(note.id);
+  };
+
+  const noteActions=(note:NoteSummary):ItemAction[]=>note.deletedAt
+    ? [{label:t("恢复笔记"),run:()=>{void restoreNote(note.id).catch(reason=>{setSyncState("error");setSyncDetail(reason.message);});}}]
+    : [{label:t("移动笔记"),run:()=>setManagement({action:"moveNote",id:note.id,path:note.parentId??"",title:note.title})},
+       {label:t("移入回收站"),danger:true,run:()=>setManagement({action:"trashNote",id:note.id,title:note.title})}];
+  const folderActions=(path:string):ItemAction[]=>[
+    {label:t("在此新建笔记"),run:()=>{void addNote(path);}},
+    {label:t("新建子文件夹"),run:()=>setManagement({action:"createFolder",path})},
+    {label:t("重命名文件夹"),run:()=>setManagement({action:"renameFolder",path})},
+    {label:t("移动文件夹"),run:()=>setManagement({action:"moveFolder",path})},
+    {label:t("删除文件夹"),danger:true,run:()=>setManagement({action:"deleteFolder",path,count:notes.filter(n=>!n.deletedAt&&isInFolder(n.parentId,path)).length})},
+  ];
+  const flushDrafts=async()=>{
+    for(const [id,job] of [...saveJobs.current]) {
+      window.clearTimeout(job.timer);
+      await updateNote(id,job.patch);
+      if(saveJobs.current.get(id)===job)saveJobs.current.delete(id);
+    }
+    setDirty(saveJobs.current.size>0);
+  };
+  const manage=async(value:{name:string;parent:string})=>{
+    if(!management)return;
+    const request=management;
+    await flushDrafts();
+    if(request.action==='moveNote'){await updateNote(request.id!,{parentId:value.parent||null});return;}
+    if(request.action==='trashNote'){await trashNote(request.id!);return;}
+    if(!navigator.onLine)throw new Error(t("文件夹操作需要联网，会同步到其他设备。"));
+    if(request.action!=='deleteFolder'&&(!value.name||/[\\/\x00-\x1f]/.test(value.name)||['.','..'].includes(value.name)))throw new Error(t("文件夹名称不能包含斜杠，也不能为 . 或 ..。"));
+    await syncNow();
+    if(await db.outbox.count()||await db.conflicts.count())throw new Error(t("还有未同步修改或冲突，请处理后再操作文件夹。"));
+    const headers={authorization:`Bearer ${localStorage.getItem("mynote:token")??""}`,"x-vault-epoch":(await db.meta.get("vaultEpoch"))?.value??"","content-type":"application/json"};
+    const stateResponse=await fetch(`${apiBase}/folders`,{headers});
+    if(!stateResponse.ok)throw new Error(t("文件夹操作失败（{0}）",stateResponse.status));
+    const state=await stateResponse.json();
+    const destination=[value.parent,value.name].filter(Boolean).join('/');
+    const action=request.action==='createFolder'?'create':request.action==='deleteFolder'?'delete':'move';
+    if(action==='move'&&destination===request.path)return;
+    const response=await fetch(`${apiBase}/folders`,{method:'POST',headers,body:JSON.stringify({action,path:action==='create'?destination:request.path,destination,revision:state.revision,expectedCount:request.count})});
+    if(!response.ok){const data=await response.json();throw new Error(data.error==='FOLDER_EXISTS'?t("目标文件夹已存在，请选择其他名称或位置。"):data.error==='FOLDER_CONFLICT'?t("文件夹内容已变化，请刷新后重试。"):data.error==='INVALID_FOLDER'?t("不能将文件夹移动到自身或其子文件夹。"):t("文件夹操作失败（{0}）",response.status));}
+    const result=await response.json();
+    await db.transaction('rw',db.notes,db.catalog,db.meta,db.outbox,async()=>{
+      const pendingIds=new Set((await db.outbox.toArray()).map(item=>item.entityId));
+      await putLocalNotes(result.notes.map(fromServer).filter((note:Note)=>!pendingIds.has(note.id)));
+      await db.meta.put({key:'folderPaths',value:JSON.stringify(result.paths)});
+    });
+    setQuery('');setView('all');setSelectedFolder(action==='delete'?null:destination);
+    if(action!=='delete')setExpandedFolders(current=>({...current,[destination]:true}));
+    // Reconcile devices and catch concurrent note edits through the usual sync protocol.
+    await syncNow();
   };
 
   const uploadAttachment = async (file: File) => {
@@ -563,6 +620,7 @@ function App() {
   }} />;
 
   return (
+    <>
     <main data-index-reads={localIndex.reads} data-index-pending={localIndex.pending} data-catalog-count={notes.length} className={`desk ${mobileNav ? "mobile-nav" : ""} ${reading.active && selected ? "immersive-reading" : ""}`} data-reading-theme={readingPreferences.theme} style={{ "--reading-size": `${readingPreferences.fontSize}px`, "--reading-width": readingPreferences.width === "wide" ? "960px" : "720px", "--left": `${leftWidth}px`, "--right": `${rightOpen ? rightWidth : 0}px` } as React.CSSProperties}>
       <aside className="left-panel">
         <header className="brand">
@@ -576,7 +634,8 @@ function App() {
           <button className={view === "recent" ? "active" : ""} onClick={() => { setView("recent"); setSelectedFolder(null); }}><Zap />{t("最近")}</button>
           <button className={view === "trash" ? "active" : ""} onClick={() => { setView("trash"); setSelectedFolder(null); }}><Trash2 />{t("回收站")}</button>
         </nav>
-        <FolderTree notes={notes} selectedNoteId={selectedId} selected={selectedFolder} expanded={expandedFolders} onExpandedChange={setExpandedFolders} onOpenNote={(note,path)=>{
+        <div className="creation-actions"><button onClick={()=>void addNote()}><FilePlus2 size={15}/>{t("新建笔记")}</button><button onClick={()=>setManagement({action:"createFolder",path:""})}><FolderPlus size={15}/>{t("新建文件夹")}</button></div>
+        <FolderTree notes={notes} paths={folderPaths} onCreateFolder={()=>setManagement({action:"createFolder",path:selectedFolder??""})} onFolderActions={folderActions} onNoteActions={noteActions} selectedNoteId={selectedId} selected={selectedFolder} expanded={expandedFolders} onExpandedChange={setExpandedFolders} onOpenNote={(note,path)=>{
           setSelectedFolder(path);setView("all");setQuery("");
           openingId.current=note.id;setSelectedId(note.id);setMobileNav(false);
         }} onSelect={path=>{
@@ -584,10 +643,10 @@ function App() {
           const first=notes.find(note=>!note.deletedAt&&isInFolder(note.parentId,path));
           if(first){openingId.current=first.id;setSelectedId(first.id);}
         }}/>
-        <div className="tree-head"><span tabIndex={0} data-tooltip={listHeading}>{listHeading}</span><button className="icon-btn" onClick={addNote} title={t("新建笔记")}><FilePlus2 size={16} /></button></div>
+        <div className="tree-head"><span tabIndex={0} data-tooltip={listHeading}>{listHeading}</span><button className="icon-btn" onClick={()=>void addNote()} title={t("新建笔记")}><FilePlus2 size={16} /></button></div>
         {query&&localIndex.pending>0&&<p className="index-status" role="status">{t("正在检索本地正文…")}</p>}
         {query&&localIndex.error&&<p className="index-status" role="status">{localIndex.error}</p>}
-        <NoteList notes={shownNotes} selectedId={selectedId} query={query} resetKey={JSON.stringify([view,query,selectedFolder])} onOpen={openNote}/>
+        <NoteList notes={shownNotes} selectedId={selectedId} query={query} resetKey={JSON.stringify([view,query,selectedFolder])} onOpen={openNote} onActions={noteActions}/>
         <footer className="account">
           <div className="avatar">{user.slice(0, 1)}</div><span><b data-tooltip={user}>{user}</b><small data-tooltip-mode={syncDetail?'always':undefined} data-tooltip={syncDetail?`${displaySyncLabel}：${localizeMessage(syncDetail)}`:displaySyncLabel}>{displaySyncLabel}</small></span>
           <a className="icon-btn" href={GITHUB_URL} target="_blank" rel="noreferrer" aria-label={t("GitHub 项目")} data-tooltip-mode="always" data-tooltip={t("GitHub 项目")}><Github size={15}/></a>
@@ -614,6 +673,7 @@ function App() {
             <button className="icon-btn mobile-only mobile-menu" aria-label={t("打开菜单")} onClick={() => setMobileNav(true)}><Menu size={18} /></button>
             <div className={`sync-state ${displaySyncState}`} title={localizeMessage(syncDetail)}><i />{displaySyncLabel}</div>
             <div className="mode-switch"><button className={!preview ? "active" : ""} onClick={() => setPreview(false)}>{t("源码")}</button><button className={preview ? "active" : ""} onClick={() => setPreview(true)}>{t("预览")}</button></div>
+            {!selected.deletedAt&&<div className="editor-management"><button className="icon-btn" aria-label={t("移动笔记")} title={t("移动笔记")} onClick={()=>setManagement({action:"moveNote",id:selected.id,path:selected.parentId??"",title:selected.title})}><FolderInput size={17}/></button><button className="icon-btn" aria-label={t("移入回收站")} title={t("移入回收站")} onClick={()=>setManagement({action:"trashNote",id:selected.id,title:selected.title})}><Trash2 size={17}/></button></div>}
             <button ref={reading.trigger} className="icon-btn" aria-label={t("进入沉浸模式")} title={t("进入沉浸模式")} onClick={reading.enter}><Maximize2 size={18}/></button>
             <button className="icon-btn" onClick={() => setRightOpen(!rightOpen)} title={t("上下文面板")}>{rightOpen ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}</button>
           </header>
@@ -629,7 +689,7 @@ function App() {
           </div>
           </NoteFind>
           <footer className="status-bar"><span>{t("{0} 字", activeDraft.replace(/\s/g, "").length)}</span><span>Markdown</span><span>{t("本地自动保存")}</span></footer>
-        </> : <div className="blank-editor"><button className="icon-btn mobile-only" aria-label={t("打开菜单")} onClick={()=>setMobileNav(true)}><Menu size={18}/></button><div className="watermark">{branding.logoText}</div><p>{selectedId?t("正在读取正文…"):t("选择一篇笔记，或开始新的书写。")}</p><button onClick={addNote}>{t("新建笔记")}</button></div>}
+        </> : <div className="blank-editor"><button className="icon-btn mobile-only" aria-label={t("打开菜单")} onClick={()=>setMobileNav(true)}><Menu size={18}/></button><div className="watermark">{branding.logoText}</div><p>{selectedId?t("正在读取正文…"):t("选择一篇笔记，或开始新的书写。")}</p><button onClick={()=>void addNote()}>{t("新建笔记")}</button></div>}
       </section>
 
       {rightOpen && <div className="splitter right-splitter" onPointerDown={resize("right")} />}
@@ -658,11 +718,8 @@ function App() {
             <h3>{t("整理")}</h3>
             <button onClick={() => void openHistory()}><RotateCcw size={14} />{t("历史版本")}</button>
             {!selected.deletedAt ? <>
-              <button data-tooltip={selected.parentId ? t("移动至：{0}", selected.parentId) : t("移动至文件夹")} onClick={() => setInputDialog({ title: t("移动至文件夹"), initialValue: selected.parentId ?? "", onConfirm: (folder) => {
-                setInputDialog(null);
-                void updateNote(selected.id, { parentId: folder.trim() || null });
-              } })}><FolderInput size={14} />{selected.parentId ? t("移动至：{0}", selected.parentId) : t("移动至文件夹")}</button>
-              <button className="danger" onClick={() => void trashNote(selected.id)}><Trash2 size={14} />{t("移入回收站")}</button>
+              <button onClick={()=>setManagement({action:"moveNote",id:selected.id,path:selected.parentId??"",title:selected.title})}><FolderInput size={14}/>{t("移动笔记")}</button>
+              <button className="danger" onClick={()=>setManagement({action:"trashNote",id:selected.id,title:selected.title})}><Trash2 size={14}/>{t("移入回收站")}</button>
             </> : <>
               <button onClick={() => void restoreNote(selected.id)}><ArchiveRestore size={14} />{t("恢复笔记")}</button>
               <button className="danger" onClick={() => {
@@ -703,6 +760,8 @@ function App() {
       {settingsOpen&&<SettingsPage onClose={()=>setSettingsOpen(false)} onSaved={value=>{applyBranding(value);setSettingsVersion(v=>v+1);}}/>}
       <HoverTooltip />
     </main>
+    {management&&<ManagementDialog key={JSON.stringify(management)} request={management} folders={availableFolders} onCancel={()=>setManagement(null)} onSubmit={manage}/>}
+    </>
   );
 }
 

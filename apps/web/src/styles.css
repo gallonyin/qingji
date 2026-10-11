@@ -349,3 +349,27 @@ mark { background: rgba(195, 142, 51, .28); color: inherit; border-radius: 1px; 
   .immersive-reading .title-line { padding-top: 28px; }
   .reading-title { font-size: 28px; }
 }
+
+/* Management controls remain discoverable on pointer and touch screens. */
+.folder-heading { align-items: center; gap: 6px; }
+.folder-heading small { margin-left: auto; }
+.folder-heading .icon-btn { padding: 3px; }
+.folder-row .folder-select { min-width: 0; }
+.folder-row .row-menu-trigger { flex: 0 0 22px; padding: 2px; margin-right: 3px; opacity: .7; }
+.row-menu-trigger:hover, .row-menu-trigger:focus-visible { opacity: 1; background: var(--accent-soft); }
+.note-row-shell { height: 58px; position: relative; }
+.note-row-shell .note-row { padding-right: 35px; }
+.note-row-shell .row-menu-trigger { position: absolute; right: 6px; bottom: 5px; padding: 2px; }
+.item-actions-menu { position: fixed; z-index: 1200; width: 190px; padding: 5px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper, #f4f0e6); box-shadow: 0 8px 24px #0002; }
+.item-actions-menu button { width: 100%; min-height: 36px; padding: 7px 10px; display: block; text-align: left; border: 0; border-radius: 3px; background: transparent; }
+.item-actions-menu button:hover, .item-actions-menu button:focus-visible { background: var(--accent-soft); }
+.item-actions-menu .danger { color: var(--accent); }
+.editor-management { display: flex; gap: 2px; }
+.management-dialog label { display: grid; gap: 8px; margin: 14px 0; }
+.management-dialog select { width: 100%; min-height: 38px; background: var(--paper, #f4f0e6); border: 1px solid var(--line); border-radius: 4px; padding: 8px; }
+.management-dialog p { line-height: 1.6; overflow-wrap: anywhere; }
+.management-dialog small { color: var(--muted); display: block; }
+.management-subject { font-weight: 600; }
+.creation-actions { display: flex; gap: 6px; padding: 6px 14px 10px; }
+.creation-actions button { display: flex; align-items: center; justify-content: center; gap: 5px; flex: 1; padding: 7px 4px; background: rgba(255,255,255,.45); border: 1px solid var(--line); border-radius: 4px; font-size: 11px; }
+.creation-actions button:hover { background: var(--accent-soft); }

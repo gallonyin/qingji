@@ -14,7 +14,7 @@ it('迁移路径还原层级，祖先计数不重复，不包含回收站，前�
  expect(isInFolder(null,'')).toBe(true);expect(isInFolder('My Notes','')).toBe(false);
 });
 it('展开深层目录、选择目录和未分类，选择操作不改变展开状态',()=>{
- const select=vi.fn();const ui=render(<FolderTree notes={notes} selected="My Notes/Work" onSelect={select}/>);
+ const select=vi.fn();const ui=render(<FolderTree notes={notes} selected={null} onSelect={select}/>);
  expect(ui.queryByRole('button',{name:'笔记 a'})).toBeNull();
  fireEvent.click(ui.getByRole('button',{name:'展开目录 My Notes/Work'}));
  ui.rerender(<FolderTree notes={notes} selected="My Notes/Work/Deep" onSelect={select}/>);
@@ -25,15 +25,15 @@ it('展开深层目录、选择目录和未分类，选择操作不改变展开�
 
 it('刷新后复用展开状态，深层选中目录自动展开祖先',()=>{
  const select=vi.fn();const changed=vi.fn();
- const ui=render(<FolderTree notes={notes} selected="My Notes/Work/Deep" expanded={{'My Notes':true,'My Notes/Work':true}} onExpandedChange={changed} onSelect={select}/>);
+ const ui=render(<FolderTree notes={notes} selected="My Notes/Work/Deep" expanded={{'My Notes':true,'My Notes/Work':true,'My Notes/Work/Deep':true}} onExpandedChange={changed} onSelect={select}/>);
  expect(ui.getByRole('button',{name:'笔记 a'}).getAttribute('aria-current')).toBe('page');
  fireEvent.click(ui.getByRole('button',{name:'收起目录 My Notes/Work'}));
- expect(changed).toHaveBeenCalledWith({'My Notes':true,'My Notes/Work':false});
- ui.rerender(<FolderTree notes={notes} selected="My Notes/Work/Deep" expanded={{'My Notes':true,'My Notes/Work':false}} onExpandedChange={changed} onSelect={select}/>);
+ expect(changed).toHaveBeenCalledWith({'My Notes':true,'My Notes/Work':false,'My Notes/Work/Deep':true});
+ ui.rerender(<FolderTree notes={notes} selected="My Notes/Work/Deep" expanded={{'My Notes':true,'My Notes/Work':false,'My Notes/Work/Deep':true}} onExpandedChange={changed} onSelect={select}/>);
  expect(ui.queryByRole('button',{name:'笔记 a'})).toBeNull();
 });
 
-it('单篇末级目录显示真实文档入口，多篇目录仍是文件夹，父目录不因总数为一变成文件',()=>{
+it('单篇目录仍然显示文件夹，展开后显示真实笔记入口',()=>{
  const open=vi.fn();const select=vi.fn();
  const data=[note('single','Books/One'),note('first','Books/Two'),note('second','Books/Two'),note('deep','Parent/Child')];
  const ui=render(<FolderTree notes={data} selected="Books/One" onSelect={select} onOpenNote={open}/>);
@@ -49,9 +49,10 @@ it('法律直属笔记与子目录合计 105 篇不重复，保险两篇可展�
  const insurance=[note('insurance-1','保险'),note('insurance-2','保险')];
  const {roots}=buildFolderTree([...legal,...children,...insurance]);
  const rows=flattenFolders(roots,{'法律':true,'保险':true},null);
- const legalRows=rows.filter(row=>row.kind==='note'&&isInFolder(row.path,'法律'));
+ const expandedRows=flattenFolders(roots,Object.fromEntries(['法律','保险',...children.map(n=>n.parentId!)].map(p=>[p,true])),null);
+ const legalRows=expandedRows.filter(row=>row.kind==='note'&&isInFolder(row.path,'法律'));
  expect(legalRows).toHaveLength(105);expect(new Set(legalRows.map(row=>row.key)).size).toBe(105);
- const ui=render(<FolderTree notes={insurance} selected="保险" onSelect={vi.fn()}/>);
+ const ui=render(<FolderTree notes={insurance} selected={null} onSelect={vi.fn()}/>);
  fireEvent.click(ui.getByRole('button',{name:'展开目录 保险'}));
  expect(ui.getByRole('button',{name:'笔记 insurance-1'})).toBeTruthy();expect(ui.getByRole('button',{name:'笔记 insurance-2'})).toBeTruthy();
 });
@@ -62,4 +63,13 @@ it('7000 篇展开目录使用虚拟窗口，滚动能打开末尾笔记',()=>{
  fireEvent.scroll(ui.container.querySelector('.folder-tree')!,{target:{scrollTop:6995*28}});
  fireEvent.click(ui.getByRole('button',{name:'笔记 bulk-6999'}));expect(open).toHaveBeenCalledWith(data[6999],'大量笔记');
  expect(ui.container.querySelectorAll('.folder-row').length).toBeLessThan(30);
+});
+
+it('空目录可选择，每个目录有操作菜单，右键打开同一菜单',()=>{
+ const run=vi.fn(),select=vi.fn(),create=vi.fn();
+ const ui=render(<FolderTree notes={[]} paths={['Empty']} selected={null} onSelect={select} onCreateFolder={create} onFolderActions={()=>[{label:'移动文件夹',run}]}/>);
+ fireEvent.click(ui.getByRole('button',{name:'新建文件夹'}));expect(create).toHaveBeenCalled();
+ fireEvent.click(ui.getByRole('button',{name:'目录 Empty'}));expect(select).toHaveBeenCalledWith('Empty');
+ fireEvent.contextMenu(ui.getByRole('button',{name:'目录 Empty'}).closest('.folder-row')!);
+ fireEvent.click(ui.getByRole('menuitem',{name:'移动文件夹'}));expect(run).toHaveBeenCalled();
 });

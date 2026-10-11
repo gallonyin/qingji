@@ -117,6 +117,9 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
       REVISION_CONFLICT: 409,
       ID_EXISTS: 409,
       INVALID_FOLDER: 400,
+      FOLDER_EXISTS: 409,
+      FOLDER_CONFLICT: 409,
+      FOLDER_RECOVERY_REQUIRED: 503,
       PURGE_REQUIRES_TRASH: 400,
       INVALID_SNAPSHOT_ID: 400,
       RESTORE_CONFIRMATION_MISMATCH: 400,
@@ -181,6 +184,7 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
       if(jobs.blocksWrites())throw new Error("BACKUP_PROTECTED");
       return writes.run(async () => {
         if(metadata.intents().length)throw new Error("RESTORE_RECOVERY_REQUIRED");
+        if(store.hasFolderRecovery())throw new Error("FOLDER_RECOVERY_REQUIRED");
         if (!route.url.startsWith("/backups")) {
           await backups.assertWritable();
           if (request.headers["x-vault-epoch"] !== metadata.epoch()) throw new Error("EPOCH_CHANGED");
@@ -189,13 +193,19 @@ export async function buildApp(options: AppOptions = {}): Promise<FastifyInstanc
       });
     };
   });
-  app.get("/sync/state", async () => ({epoch:metadata.epoch(),cursor:metadata.latestSequence()}));
+  app.get("/sync/state", async () => ({epoch:metadata.epoch(),cursor:metadata.latestSequence(),folders:store.folders().paths}));
 
   app.post("/auth/logout", async (request, reply) => {
     const token = request.headers.authorization?.match(/^Bearer (.+)$/i)?.[1] ?? request.cookies.mynote_session;
     if (token) metadata.deleteSession(hash(token));
     reply.clearCookie("mynote_session", { path: "/" });
     return { ok: true };
+  });
+
+  app.get("/folders", async () => store.folders());
+  app.post("/folders", async request => {
+    const input=z.object({action:z.enum(["create","move","delete"]),path:z.string().min(1).max(1000),destination:z.string().max(1000).optional(),revision:z.string(),expectedCount:z.number().int().nonnegative().optional()}).parse(request.body);
+    return store.changeFolder(input);
   });
 
   app.get("/notes", async (request) => {

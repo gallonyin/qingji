@@ -6,7 +6,7 @@ export type SyncState = "offline" | "idle" | "pending" | "syncing" | "conflict" 
 export type SyncListener = (state: SyncState, detail?: string) => void;
 export type SyncTransport = {
   push(item: OutboxItem): Promise<{ ok: boolean; note?: Note; conflict?: Note; conflictCopy?: Note }>;
-  state?(): Promise<{epoch: string}>;
+  state?(): Promise<{epoch: string;folders?:string[]}>;
   pull(cursor: string, until?: number): Promise<{ notes: Note[]; deletedIds?: string[]; cursor: string; hasMore?: boolean; until?: number; epoch?: string }>;
 };
 
@@ -124,7 +124,7 @@ async function runSync(transport: SyncTransport) {
   emit("syncing");
   try {
     if (transport.state) {
-      const {epoch} = await transport.state();
+      const {epoch,folders} = await transport.state();
       const localEpoch = (await db.meta.get("vaultEpoch"))?.value;
       if (localEpoch !== epoch) {
         await db.transaction("rw",[db.notes,db.catalog,db.outbox,db.conflicts,db.meta,db.recoveryDrafts], async () => {
@@ -137,6 +137,10 @@ async function runSync(transport: SyncTransport) {
           await clearLocalNotes(); await db.outbox.clear(); await db.conflicts.clear();
           await db.meta.bulkPut([{key:"vaultEpoch",value:epoch},{key:"syncCursor",value:"0"}]);
         });
+      }
+      if(folders){
+        const value=JSON.stringify(folders);
+        if((await db.meta.get("folderPaths"))?.value!==value)await db.meta.put({key:"folderPaths",value});
       }
     }
     const pending = await db.outbox.orderBy("createdAt").toArray();
