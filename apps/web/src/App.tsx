@@ -1,3 +1,4 @@
+import {Toast} from "./components/Toast";
 import {useSaveShortcut} from "./lib/use-save-shortcut";
 import {ManagementDialog,type ManagementRequest} from "./components/ManagementDialog";
 import {type ItemAction} from "./components/ItemActions";
@@ -761,8 +762,8 @@ function App() {
         if (current) { setDraft(current.content);setTitle(current.title); }
       }} />}
       {inputDialog && <InputDialog {...inputDialog} onCancel={() => setInputDialog(null)} />}
-      {settingsOpen&&<SettingsPage onClose={()=>setSettingsOpen(false)} onSaved={value=>{applyBranding(value);setSettingsVersion(v=>v+1);}}/>}
-      {saveNotice&&<div key={saveNotice.id} className={`save-toast ${saveNotice.error?"save-toast-error":""}`} role={saveNotice.error?"alert":"status"} aria-live={saveNotice.error?"assertive":"polite"}>{saveNotice.message}</div>}
+      {settingsOpen&&<SettingsPage saveNotice={saveNotice} onClose={()=>setSettingsOpen(false)} onSaved={value=>{applyBranding(value);setSettingsVersion(v=>v+1);}}/>}
+      {!settingsOpen&&<Toast notice={saveNotice}/>}
       <HoverTooltip />
     </main>
     {management&&<ManagementDialog key={JSON.stringify(management)} request={management} folders={availableFolders} onCancel={()=>setManagement(null)} onSubmit={manage}/>}

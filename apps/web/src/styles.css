@@ -373,5 +373,17 @@ mark { background: rgba(195, 142, 51, .28); color: inherit; border-radius: 1px; 
 .creation-actions { display: flex; gap: 6px; padding: 6px 14px 10px; }
 .creation-actions button { display: flex; align-items: center; justify-content: center; gap: 5px; flex: 1; padding: 7px 4px; background: rgba(255,255,255,.45); border: 1px solid var(--line); border-radius: 4px; font-size: 11px; }
 .creation-actions button:hover { background: var(--accent-soft); }
-.save-toast { position: fixed; z-index: 1500; left: 50%; bottom: 36px; transform: translateX(-50%); max-width: calc(100vw - 32px); padding: 10px 18px; border-radius: 6px; background: #302e2a; color: #fff9ef; box-shadow: 0 4px 20px #0003; font-size: 13px; line-height: 1.5; pointer-events: none; overflow-wrap: anywhere; }
-.save-toast-error { background: #8f3026; }
+
+/* Shared, paper-toned transient feedback. Never takes focus from writing. */
+.toast { position: fixed; z-index: 1500; top: 64px; right: 20px; display: flex; align-items: center; gap: 10px; width: max-content; min-width: 224px; max-width: min(380px, calc(100vw - 32px)); padding: 12px 12px 12px 14px; border: 1px solid #ddd7ca; border-radius: 10px; background: #fffdf7; color: var(--ink); box-shadow: 0 6px 24px rgba(55,49,42,.09), 0 1px 3px rgba(55,49,42,.04); animation: toast-enter .18s ease-out; }
+.toast-icon { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto; background: #edf2e8; color: #58754f; }
+.toast-message { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; flex: 1; }
+.toast-close { border: 0; background: transparent; color: var(--muted); padding: 5px; display: grid; place-items: center; border-radius: 5px; flex: 0 0 auto; }
+.toast-close:hover { background: var(--accent-soft); color: var(--ink); }
+.toast-error .toast-icon { background: #f8ebe5; color: #a33a2b; }
+.immersive-reading[data-reading-theme="dark"] .toast { background: #2b2e30; border-color: var(--line); }
+.immersive-reading[data-reading-theme="dark"] .toast-icon { background: #354333; color: #c1d6b6; }
+.immersive-reading[data-reading-theme="dark"] .toast-error .toast-icon { background: #52342e; color: #f2bbab; }
+@keyframes toast-enter { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 600px) { .toast { top: 60px; right: 12px; min-width: 0; max-width: calc(100vw - 24px); } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }

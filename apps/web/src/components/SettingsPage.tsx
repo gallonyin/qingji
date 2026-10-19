@@ -1,3 +1,5 @@
+import {Toast} from "./Toast";
+import {useToast,type ToastNotice} from "../lib/use-toast";
 import {LanguageSelect} from './LanguageSelect';
 import {t, localizeMessage, useLocale} from '../lib/i18n';
 import {useEffect,useRef,useState} from 'react';
@@ -8,11 +10,13 @@ export function BrandMark({branding,className='seal'}:{branding:Branding;classNa
   useLocale();
  return <div className={className}>{branding.logoImage?<img src={branding.logoImage} alt={t("应用 Logo")}/>:<span>{branding.logoText}</span>}</div>;
 }
-export function SettingsPage({onClose,onSaved}:{onClose:()=>void;onSaved:(branding:Branding)=>void}){
+export function SettingsPage({onClose,onSaved,saveNotice}:{saveNotice?:ToastNotice|null;onClose:()=>void;onSaved:(branding:Branding)=>void}){
   useLocale();
  const dialog=useRef<HTMLDialogElement>(null),upload=useRef<HTMLInputElement>(null);
  const [value,setValue]=useState<AppSettings|null>(null),[tab,setTab]=useState<'appearance'|'backup'|'about'>('appearance');
- const [error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[testing,setTesting]=useState(false),[test,setTest]=useState<S3TestResult|null>(null);
+ const [error,setError]=useState(''),[busy,setBusy]=useState(false),[testing,setTesting]=useState(false),[test,setTest]=useState<S3TestResult|null>(null);
+ const {notice,show,dismiss}=useToast();
+ const setNotice=(message:string)=>message?show(message):dismiss();
  const [dirty,setDirty]=useState(false),[clearCredentials,setClearCredentials]=useState(false);
  useEffect(()=>{dialog.current?.showModal();let active=true;void getSettings().then(v=>{if(active)setValue(v);}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[]);
  useEffect(()=>{
@@ -32,7 +36,7 @@ export function SettingsPage({onClose,onSaved}:{onClose:()=>void;onSaved:(brandi
   <nav aria-label={t("设置分类")}>{([['appearance',t("外观")],['backup',t("S3 备份")],['about',t("关于")]] as const).map(([key,label])=><button key={key} className={tab===key?'active':''} aria-current={tab===key?'page':undefined} onClick={()=>setTab(key)}>{label}</button>)}</nav>
   <form onSubmit={e=>{e.preventDefault();void save();}}>
   <div className="settings-body">
-   {error&&<p role="alert" className="backup-error">{localizeMessage(error)}</p>}{notice&&<p role="status" className="settings-success">{localizeMessage(notice)}</p>}
+   {error&&<p role="alert" className="backup-error">{localizeMessage(error)}</p>}
    {!value&&!error&&<p role="status">{t("正在读取设置…")}</p>}
    {value&&<fieldset disabled={pending}>
     {tab==='appearance'&&<section><label>{t('界面语言')}<LanguageSelect/></label><p className="muted">{t('只影响当前浏览器，不会翻译笔记内容。')}</p><h3>{t("应用外观")}</h3><p className="muted">{t("在所有浏览器中生效；修改名称不会移动笔记或更改备份目录。")}</p>
@@ -70,5 +74,6 @@ export function SettingsPage({onClose,onSaved}:{onClose:()=>void;onSaved:(brandi
   </div>
   <footer><span className="muted">{dirty?t("有未保存的修改"):t("设置保存在服务端")}</span><button type="button" disabled={pending} onClick={close}>{t("关闭")}</button><button className="primary" type="submit" disabled={!value||!dirty||pending}>{busy?t("保存中…"):t("保存设置")}</button></footer>
   </form>
+ <Toast notice={notice??saveNotice??null}/>
  </dialog>;
 }

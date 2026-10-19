@@ -1,5 +1,6 @@
 // Chinese source messages map to English and Japanese. Keep placeholders identical.
 export const messages: Record<string, readonly [string, string]> = {
+  "关闭提示": ["Dismiss notification", "通知を閉じる"],
   "已保存到本机": ["Saved locally", "端末に保存しました"],
   "笔记已自动保存": ["Notes are already autosaved", "ノートは自動保存済みです"],
   "保存失败，请重试：{0}": ["Save failed. Try again: {0}", "保存に失敗しました。再試行してください：{0}"],
