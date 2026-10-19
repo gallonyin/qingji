@@ -373,3 +373,5 @@ mark { background: rgba(195, 142, 51, .28); color: inherit; border-radius: 1px; 
 .creation-actions { display: flex; gap: 6px; padding: 6px 14px 10px; }
 .creation-actions button { display: flex; align-items: center; justify-content: center; gap: 5px; flex: 1; padding: 7px 4px; background: rgba(255,255,255,.45); border: 1px solid var(--line); border-radius: 4px; font-size: 11px; }
 .creation-actions button:hover { background: var(--accent-soft); }
+.save-toast { position: fixed; z-index: 1500; left: 50%; bottom: 36px; transform: translateX(-50%); max-width: calc(100vw - 32px); padding: 10px 18px; border-radius: 6px; background: #302e2a; color: #fff9ef; box-shadow: 0 4px 20px #0003; font-size: 13px; line-height: 1.5; pointer-events: none; overflow-wrap: anywhere; }
+.save-toast-error { background: #8f3026; }

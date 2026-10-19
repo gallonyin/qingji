@@ -1,3 +1,4 @@
+import {useSaveShortcut} from "./lib/use-save-shortcut";
 import {ManagementDialog,type ManagementRequest} from "./components/ManagementDialog";
 import {type ItemAction} from "./components/ItemActions";
 import {ReadingToolbar} from './components/ReadingToolbar';
@@ -519,13 +520,16 @@ function App() {
     {label:t("删除文件夹"),danger:true,run:()=>setManagement({action:"deleteFolder",path,count:notes.filter(n=>!n.deletedAt&&isInFolder(n.parentId,path)).length})},
   ];
   const flushDrafts=async()=>{
+    const changed=saveJobs.current.size>0;
     for(const [id,job] of [...saveJobs.current]) {
       window.clearTimeout(job.timer);
       await updateNote(id,job.patch);
       if(saveJobs.current.get(id)===job)saveJobs.current.delete(id);
     }
     setDirty(saveJobs.current.size>0);
+    return changed;
   };
+  const saveNotice=useSaveShortcut(!!user,flushDrafts);
   const manage=async(value:{name:string;parent:string})=>{
     if(!management)return;
     const request=management;
@@ -758,6 +762,7 @@ function App() {
       }} />}
       {inputDialog && <InputDialog {...inputDialog} onCancel={() => setInputDialog(null)} />}
       {settingsOpen&&<SettingsPage onClose={()=>setSettingsOpen(false)} onSaved={value=>{applyBranding(value);setSettingsVersion(v=>v+1);}}/>}
+      {saveNotice&&<div key={saveNotice.id} className={`save-toast ${saveNotice.error?"save-toast-error":""}`} role={saveNotice.error?"alert":"status"} aria-live={saveNotice.error?"assertive":"polite"}>{saveNotice.message}</div>}
       <HoverTooltip />
     </main>
     {management&&<ManagementDialog key={JSON.stringify(management)} request={management} folders={availableFolders} onCancel={()=>setManagement(null)} onSubmit={manage}/>}

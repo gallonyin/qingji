@@ -31,6 +31,8 @@ These screenshots show the actual application running with a separate demo noteb
 - **More economical S3 backups.** The server batches changes from multiple devices, reuses objects by content hash, and uploads only the difference. Unchanged content skips a new snapshot; cached hashes and periodic full reconciliation reduce repeated reads, writes, transfers, and verification work.
 - **Simple deployment, your own data.** One Docker Compose startup command builds the frontend and backend, starts the services, and checks their health. Markdown and original attachments are stored directly on disk, with note history, trash, and full export available.
 
+Press **Ctrl+S / Cmd+S** to immediately save pending note edits locally. A toast confirms “Saved locally”, or “Notes are already autosaved” when there are no pending edits. This works in source and preview modes; background sync continues normally.
+
 ## Managing folders and notes
 
 Use “New note / New folder” in the sidebar. Empty folders persist and sync, and folders with one note remain visible. Every folder and note row has a “⋯” menu, also available by right click, for moving and deleting. Folder menus also offer rename, new subfolder, and new note here. The article toolbar provides move and Trash actions without opening the context panel.
