@@ -16,7 +16,7 @@
     "@codemirror/view": "^6.36.8",
     "codemirror": "^6.0.1",
     "dexie": "^4.0.11",
-    "dexie-react-hooks": "^1.1.7",
+    "dexie-react-hooks": "^4.4.0",
     "lucide-react": "^0.468.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
